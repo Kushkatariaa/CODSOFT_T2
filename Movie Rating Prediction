@@ -1,0 +1,98 @@
+# Step 1: Import Libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import mean_squared_error
+from sklearn.ensemble import RandomForestRegressor
+
+# Step 2: Load dataset and check column names
+df=pd.read_csv('/content/IMDb_Movies_India.csv', encoding='latin-1')
+print("Columns in dataset:", df.columns.tolist())
+
+df.head(10)
+df.tail()
+df.describe()
+df.iinfo()
+
+# Step 3: Select relevant columns
+
+df = df[['Genre', 'Director', 'Name', 'Rating']]  
+df.columns = ['Genre', 'Director', 'Name', 'Rating']  # rename for consistency
+
+# Step 4: Drop missing values
+df.dropna(inplace=True)
+
+# Step 5: Label encode categorical columns
+le_genre = LabelEncoder()
+le_director = LabelEncoder()
+le_name = LabelEncoder()
+
+df['Genre'] = le_genre.fit_transform(df['Genre'])
+df['Director'] = le_director.fit_transform(df['Director'])
+df['Name'] = le_name.fit_transform(df['Name'])
+
+# Step 6: Features and target
+X = df[['Genre', 'Director', 'Name']]
+y = df['Rating']
+
+# Step 7: Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Step 8: Train model
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Step 9: Evaluate
+y_pred = model.predict(X_test)
+print("✅ Mean Squared Error:", round(mean_squared_error(y_test, y_pred), 2))
+
+#----------------SAMPLE INPUT-------------------
+#give details below of the movie you want to predict rating
+# Step 10: Custom input prediction
+genre_name = 'Action'
+director_name = 'Biju Bhaskar Nair'
+movie_name = '@Andheri'
+
+# Make sure input values exist in original encoders
+if (
+    genre_name in le_genre.classes_ and
+    director_name in le_director.classes_ and
+    movie_name in le_name.classes_
+):
+    encoded_genre = le_genre.transform([genre_name])[0]
+    encoded_director = le_director.transform([director_name])[0]
+    encoded_name = le_name.transform([movie_name])[0]
+
+    sample_input = pd.DataFrame([[encoded_genre, encoded_director, encoded_name]], columns=['Genre', 'Director', 'Name'])
+    predicted_rating = model.predict(sample_input)
+    print(f"🎬 Predicted IMDb Rating for '{movie_name}' ({genre_name}, directed by {director_name}): {round(predicted_rating[0], 2)}")
+else:
+    print("❌ Error: One or more values not found in training data.")
+
+# Step 11: Data Visualization
+
+#rating distribution
+
+plt.figure(figsize=(8, 5))
+sns.histplot(df['Rating'], bins=15, kde=True, color='skyblue')
+plt.title('Distribution of IMDb Ratings')
+plt.xlabel('Rating')
+plt.ylabel('Frequency')
+plt.grid(True)
+plt.show()
+
+#Top 10 Genre by count
+
+plt.figure(figsize=(10, 5))
+top_genres = df['Genre'].value_counts().nlargest(10)
+sns.barplot(x=top_genres.index, y=top_genres.values, palette='viridis')
+plt.title('Top 10 Genres')
+plt.ylabel('Number of Movies')
+plt.xticks(rotation=45)
+plt.grid(axis='y')
+plt.show()
+
